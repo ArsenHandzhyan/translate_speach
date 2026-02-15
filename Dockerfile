@@ -28,6 +28,7 @@ RUN pip install --no-cache-dir \
     ctranslate2>=4.0 \
     sentencepiece>=0.2.0 \
     requests>=2.31 \
+    webrtcvad-wheels>=2.0.11 \
     fastapi>=0.104.0 \
     uvicorn[standard]>=0.24.0 \
     python-multipart>=0.0.6 \
