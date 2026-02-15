@@ -26,7 +26,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # Configuration
-SERVER_URL = "wss://translator-xxx.onrender.com/ws"  # Replace with your Render URL
+SERVER_URL = "wss://translate-speach.onrender.com/ws"  # Your Render server
 AUDIO_RATE = 16000
 AUDIO_CHANNELS = 1
 CHUNK_DURATION = 0.5  # seconds

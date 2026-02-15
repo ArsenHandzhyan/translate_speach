@@ -71,7 +71,7 @@ echo "Creating launcher script..."
 cat > /sdcard/translator/run.sh << 'EOF'
 #!/bin/bash
 cd /sdcard/translator
-python translator.py --server "wss://YOUR_RENDER_URL/ws"
+python translator.py --server "wss://translate-speach.onrender.com/ws"
 EOF
 chmod +x /sdcard/translator/run.sh
 echo "Created: /sdcard/translator/run.sh"
