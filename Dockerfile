@@ -6,7 +6,12 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsndfile1 \
     libgomp1 \
+    gcc \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install build tools
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Set working directory
 WORKDIR /app
@@ -16,11 +21,18 @@ COPY pyproject.toml ./
 COPY src/ ./src/
 COPY web/ ./web/
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
-
-# Download Whisper model (optional - can be downloaded at runtime)
-# RUN python -c "from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8')"
+# Install Python dependencies directly (avoid editable install issues)
+RUN pip install --no-cache-dir \
+    numpy>=1.26 \
+    faster-whisper>=1.1.0 \
+    ctranslate2>=4.0 \
+    sentencepiece>=0.2.0 \
+    requests>=2.31 \
+    fastapi>=0.104.0 \
+    uvicorn[standard]>=0.24.0 \
+    python-multipart>=0.0.6 \
+    websockets>=12.0 \
+    pydub>=0.25.0
 
 # Expose port
 EXPOSE 8000
