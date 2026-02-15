@@ -26,6 +26,11 @@ class TranslatorClient {
         this.sourceLang = document.getElementById('source-lang');
         this.targetLang = document.getElementById('target-lang');
         this.autoPlay = document.getElementById('auto-play');
+        this.modeOutgoing = document.getElementById('mode-outgoing');
+        this.modeIncoming = document.getElementById('mode-incoming');
+        
+        // Mode: outgoing = I speak, incoming = partner speaks
+        this.mode = 'outgoing';
     }
 
     bindEvents() {
@@ -48,6 +53,31 @@ class TranslatorClient {
 
         // Language swap
         this.sourceLang.addEventListener('change', () => this.updateTargetLang());
+        
+        // Mode switch
+        this.modeOutgoing.addEventListener('click', () => this.setMode('outgoing'));
+        this.modeIncoming.addEventListener('click', () => this.setMode('incoming'));
+    }
+
+    setMode(mode) {
+        this.mode = mode;
+        
+        // Update UI
+        this.modeOutgoing.classList.toggle('active', mode === 'outgoing');
+        this.modeIncoming.classList.toggle('active', mode === 'incoming');
+        
+        // Update button text
+        if (mode === 'outgoing') {
+            this.speakBtn.querySelector('.btn-text').textContent = 'Hold to Speak';
+            this.sourceLang.value = 'ru';
+            this.targetLang.value = 'en';
+        } else {
+            this.speakBtn.querySelector('.btn-text').textContent = 'Hold to Record Partner';
+            this.sourceLang.value = 'en';
+            this.targetLang.value = 'ru';
+        }
+        
+        this.progressText.textContent = mode === 'outgoing' ? 'Ready to speak' : 'Ready to record partner';
     }
 
     updateTargetLang() {
