@@ -1,7 +1,10 @@
 """Text-to-Speech engines."""
+import io
 import logging
+import struct
 import subprocess
 import tempfile
+import wave
 import numpy as np
 from pathlib import Path
 
@@ -144,4 +147,72 @@ class MacOSSayTTS:
             return audio
         except Exception as e:
             log.error(f"macOS say TTS failed: {e}")
+            return None
+
+
+class GoogleCloudTTS:
+    """Cross-platform TTS using Google Translate TTS (free, no API key).
+
+    Works on Linux/Docker where macOS 'say' is not available.
+    Uses gTTS library to generate speech audio.
+    """
+
+    def __init__(self):
+        self.sample_rate = 22050
+        self._gtts_available = self._check_gtts()
+
+    def _check_gtts(self) -> bool:
+        try:
+            from gtts import gTTS
+            return True
+        except ImportError:
+            log.warning("gTTS not installed. TTS will not be available.")
+            return False
+
+    def synthesize(self, text: str, lang: str = "ru") -> np.ndarray | None:
+        """Synthesize speech using Google TTS. Returns float32 audio array."""
+        if not text.strip():
+            return None
+
+        if not self._gtts_available:
+            return None
+
+        try:
+            from gtts import gTTS
+
+            # gTTS uses language codes like 'ru', 'en' — same as ours
+            tts = gTTS(text=text, lang=lang, slow=False)
+
+            # Save to temporary MP3
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                mp3_path = f.name
+            tts.save(mp3_path)
+
+            # Convert MP3 to WAV using ffmpeg
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                wav_path = f.name
+
+            result = subprocess.run(
+                [
+                    "ffmpeg", "-y", "-i", mp3_path,
+                    "-ar", str(self.sample_rate), "-ac", "1", "-f", "wav", wav_path,
+                ],
+                capture_output=True, timeout=30,
+            )
+
+            if result.returncode != 0:
+                log.error(f"ffmpeg conversion failed: {result.stderr.decode()}")
+                Path(mp3_path).unlink(missing_ok=True)
+                return None
+
+            with wave.open(wav_path, "rb") as wf:
+                frames = wf.readframes(wf.getnframes())
+                audio = np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
+
+            Path(mp3_path).unlink(missing_ok=True)
+            Path(wav_path).unlink(missing_ok=True)
+            return audio
+
+        except Exception as e:
+            log.error(f"Google TTS failed: {e}")
             return None

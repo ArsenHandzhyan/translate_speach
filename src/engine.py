@@ -1,5 +1,6 @@
 """Main translation engine - orchestrates STT → MT → TTS pipeline."""
 import logging
+import platform
 import re
 import threading
 import time
@@ -9,7 +10,7 @@ from typing import Callable
 from .config import TranslatorConfig, Mode, MicMode
 from .stt import WhisperSTT
 from .mt import NLLBTranslator, SimpleCloudTranslator
-from .tts import MacOSSayTTS
+from .tts import MacOSSayTTS, GoogleCloudTTS
 from .vad import VoiceActivityDetector
 
 log = logging.getLogger(__name__)
@@ -81,6 +82,15 @@ class TranslationEngine:
         if self.on_status:
             self.on_status(msg)
 
+    def _create_tts(self):
+        """Create the appropriate TTS engine based on platform."""
+        if platform.system() == "Darwin":
+            log.info("Using macOS Say TTS")
+            return MacOSSayTTS()
+        else:
+            log.info("Using Google Cloud TTS (Linux/Docker)")
+            return GoogleCloudTTS()
+
     def load_models(self):
         """Load all models for the current mode."""
         self._status("Loading models...")
@@ -110,7 +120,7 @@ class TranslationEngine:
                     self._mt_local = None
 
             self._status("Loading TTS...")
-            self._tts = MacOSSayTTS()
+            self._tts = self._create_tts()
 
         if mode in (Mode.CLOUD, Mode.HYBRID):
             self._mt_cloud = SimpleCloudTranslator()
@@ -123,7 +133,7 @@ class TranslationEngine:
                         compute_type="int8",
                     )
                 if self._tts is None:
-                    self._tts = MacOSSayTTS()
+                    self._tts = self._create_tts()
 
         self._status("Models loaded.")
 

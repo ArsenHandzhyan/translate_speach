@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import logging
+import os
 import tempfile
 import wave
 from contextlib import asynccontextmanager
@@ -34,7 +35,11 @@ async def lifespan(app: FastAPI):
     config = TranslatorConfig()
     config.mode = Mode.CLOUD  # Use cloud MT for server
     config.show_subtitles = False
-    
+
+    # Use smaller Whisper model for server (saves memory on Render free tier)
+    config.whisper_model = os.environ.get("WHISPER_MODEL", "tiny")
+    log.info(f"Using Whisper model: {config.whisper_model}")
+
     engine = TranslationEngine(config)
     engine.load_models()
     

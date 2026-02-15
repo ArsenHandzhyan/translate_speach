@@ -33,7 +33,11 @@ RUN pip install --no-cache-dir \
     uvicorn[standard]>=0.24.0 \
     python-multipart>=0.0.6 \
     websockets>=12.0 \
-    pydub>=0.25.0
+    pydub>=0.25.0 \
+    gTTS>=2.4.0
+
+# Default to tiny Whisper model for memory-constrained environments
+ENV WHISPER_MODEL=tiny
 
 # Expose port
 EXPOSE 8000
