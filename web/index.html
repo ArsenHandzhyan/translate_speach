@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Translator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Live Translator</h1>
+            <p class="subtitle">RU ↔ EN Speech-to-Speech</p>
+        </header>
+
+        <div class="connection-panel">
+            <div class="status-indicator" id="status">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">Disconnected</span>
+            </div>
+            <button id="connect-btn" class="btn btn-primary">Connect</button>
+        </div>
+
+        <div class="language-selector">
+            <div class="lang-box">
+                <label>Speak:</label>
+                <select id="source-lang">
+                    <option value="ru">Russian</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+            <div class="lang-arrow">→</div>
+            <div class="lang-box">
+                <label>Translate to:</label>
+                <select id="target-lang">
+                    <option value="en">English</option>
+                    <option value="ru">Russian</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="main-controls">
+            <button id="speak-btn" class="btn btn-speak" disabled>
+                <span class="mic-icon">🎤</span>
+                <span class="btn-text">Hold to Speak</span>
+            </button>
+        </div>
+
+        <div class="progress-indicator" id="progress">
+            <span id="progress-text">Ready</span>
+        </div>
+
+        <div class="transcript-panel">
+            <div class="transcript-box">
+                <h3>Original</h3>
+                <div id="original-text" class="text-content">-</div>
+            </div>
+            <div class="transcript-box">
+                <h3>Translation</h3>
+                <div id="translated-text" class="text-content">-</div>
+            </div>
+        </div>
+
+        <div class="history-panel">
+            <h3>History</h3>
+            <div id="history-list" class="history-list"></div>
+        </div>
+
+        <div class="settings-panel">
+            <details>
+                <summary>Settings</summary>
+                <div class="settings-content">
+                    <label>
+                        <input type="checkbox" id="auto-play" checked>
+                        Auto-play translation
+                    </label>
+                    <label>
+                        <input type="checkbox" id="show-subtitles" checked>
+                        Show subtitles
+                    </label>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
