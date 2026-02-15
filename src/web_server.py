@@ -146,9 +146,10 @@ async def handle_audio_message(websocket: WebSocket, message: dict):
         
         # Decode base64 audio
         audio_bytes = base64.b64decode(audio_base64)
-        
+        mime_type = message.get('mimeType', 'audio/webm')
+
         # Convert to numpy array (16kHz, mono, int16)
-        audio_int16 = await convert_audio(audio_bytes)
+        audio_int16 = await convert_audio(audio_bytes, mime_type)
         
         if audio_int16 is None or len(audio_int16) == 0:
             await manager.send_message(websocket, {
@@ -221,56 +222,66 @@ async def handle_audio_message(websocket: WebSocket, message: dict):
         })
 
 
-async def convert_audio(audio_bytes: bytes) -> Optional[np.ndarray]:
-    """Convert WebM/Opus audio to 16kHz int16 numpy array."""
+async def convert_audio(audio_bytes: bytes, mime_type: str = 'audio/webm') -> Optional[np.ndarray]:
+    """Convert browser audio to 16kHz int16 numpy array.
+
+    Supports WebM, OGG, MP4 and other formats via ffmpeg/pydub.
+    """
+    # Determine file extension from MIME type
+    mime_to_ext = {
+        'audio/webm': '.webm',
+        'audio/webm;codecs=opus': '.webm',
+        'audio/ogg': '.ogg',
+        'audio/ogg;codecs=opus': '.ogg',
+        'audio/mp4': '.mp4',
+        'audio/mpeg': '.mp3',
+        'audio/wav': '.wav',
+    }
+    ext = mime_to_ext.get(mime_type, '.webm')
+    log.info(f"Audio conversion: mime={mime_type}, ext={ext}, size={len(audio_bytes)} bytes")
+
     try:
-        # Save to temporary file
-        with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as f:
+        # Save to temporary file with correct extension
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as f:
             f.write(audio_bytes)
-            webm_path = f.name
-        
-        # Convert to WAV using ffmpeg (if available) or use alternative
-        wav_path = webm_path.replace('.webm', '.wav')
-        
+            input_path = f.name
+
+        wav_path = input_path.rsplit('.', 1)[0] + '.wav'
+
+        # Try ffmpeg first
         try:
             import subprocess
-            # Convert to 16kHz mono WAV
             subprocess.run([
-                'ffmpeg', '-y', '-i', webm_path,
+                'ffmpeg', '-y', '-i', input_path,
                 '-ar', '16000', '-ac', '1', '-f', 'wav', wav_path
             ], capture_output=True, timeout=30, check=True)
-            
-            # Read WAV file
+
             with wave.open(wav_path, 'rb') as wf:
                 frames = wf.readframes(wf.getnframes())
                 audio = np.frombuffer(frames, dtype=np.int16)
-            
-            # Cleanup
-            Path(webm_path).unlink(missing_ok=True)
+
+            Path(input_path).unlink(missing_ok=True)
             Path(wav_path).unlink(missing_ok=True)
-            
             return audio
-            
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            # Fallback: try to use pydub if available
+
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            log.warning(f"ffmpeg failed for {ext}: {e}")
+            # Fallback: pydub with auto-detection (no explicit format)
             try:
                 from pydub import AudioSegment
-                
-                audio = AudioSegment.from_file(webm_path, format='webm')
+
+                audio = AudioSegment.from_file(input_path)
                 audio = audio.set_frame_rate(16000).set_channels(1)
-                
-                # Convert to numpy
                 samples = np.array(audio.get_array_of_samples())
-                
-                # Cleanup
-                Path(webm_path).unlink(missing_ok=True)
-                
+
+                Path(input_path).unlink(missing_ok=True)
                 return samples.astype(np.int16)
-                
-            except ImportError:
-                log.error("Neither ffmpeg nor pydub available for audio conversion")
+
+            except Exception as pydub_err:
+                log.error(f"pydub fallback also failed: {pydub_err}")
+                Path(input_path).unlink(missing_ok=True)
                 return None
-                
+
     except Exception as e:
         log.error(f"Audio conversion error: {e}")
         return None

@@ -170,10 +170,28 @@ class TranslatorClient {
                 }
             });
             
+            // Detect supported MIME type
+            const mimeTypes = [
+                'audio/webm;codecs=opus',
+                'audio/webm',
+                'audio/ogg;codecs=opus',
+                'audio/ogg',
+                'audio/mp4',
+                ''  // browser default
+            ];
+            let selectedMime = '';
+            for (const mime of mimeTypes) {
+                if (mime === '' || MediaRecorder.isTypeSupported(mime)) {
+                    selectedMime = mime;
+                    break;
+                }
+            }
+            console.log('Using MIME type:', selectedMime || 'browser default');
+            this.recordingMimeType = selectedMime;
+
             // Use MediaRecorder to capture audio
-            this.mediaRecorder = new MediaRecorder(this.localStream, {
-                mimeType: 'audio/webm;codecs=opus'
-            });
+            const recorderOptions = selectedMime ? { mimeType: selectedMime } : {};
+            this.mediaRecorder = new MediaRecorder(this.localStream, recorderOptions);
             
             this.mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
@@ -214,22 +232,24 @@ class TranslatorClient {
     async sendAudio() {
         if (this.audioChunks.length === 0) return;
         
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        const blobType = this.recordingMimeType || 'audio/webm';
+        const audioBlob = new Blob(this.audioChunks, { type: blobType });
         const reader = new FileReader();
-        
+
         reader.onloadend = () => {
             const base64Audio = reader.result.split(',')[1];
-            
+
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {
                 this.ws.send(JSON.stringify({
                     type: 'audio',
                     data: base64Audio,
+                    mimeType: blobType,
                     sourceLang: this.sourceLang.value,
                     targetLang: this.targetLang.value
                 }));
             }
         };
-        
+
         reader.readAsDataURL(audioBlob);
     }
 
