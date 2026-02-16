@@ -48,6 +48,9 @@ class AudioStreamManager:
         self._mute_recorder = False
         self._mute_lock = threading.Lock()
         self._mute_count = 0  # reference counting for nested mutes
+        # Manual direction control
+        self._manual_direction = "outgoing"  # "outgoing" or "incoming"
+        self._direction_lock = threading.Lock()
 
     def _mute(self):
         """Mute the mic recorder (reference counted for nested calls)."""
@@ -61,6 +64,21 @@ class AudioStreamManager:
             self._mute_count = max(0, self._mute_count - 1)
             if self._mute_count == 0:
                 self._mute_recorder = False
+
+    def set_direction(self, direction: str):
+        """Set translation direction manually.
+        
+        Args:
+            direction: "outgoing" (me→partner, RU→EN) or "incoming" (partner→me, EN→RU)
+        """
+        with self._direction_lock:
+            self._manual_direction = direction
+            log.info(f"Direction set to: {direction}")
+
+    def get_direction(self) -> str:
+        """Get current translation direction."""
+        with self._direction_lock:
+            return self._manual_direction
 
     def start(self):
         self._running = True

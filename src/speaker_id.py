@@ -1,25 +1,38 @@
-"""Speaker identification using pyannote.audio embeddings."""
+"""Speaker identification using MFCC or pyannote.audio (with HF token)."""
 import logging
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
-import torch
-import torchaudio
 
 log = logging.getLogger(__name__)
 
 # Profile storage
 PROFILE_PATH = Path(__file__).parent.parent / "config" / "voice_profile.npy"
+HF_TOKEN_PATH = Path(__file__).parent.parent / "config" / "hf_token.txt"
+
+
+def get_hf_token() -> Optional[str]:
+    """Get Hugging Face token if saved."""
+    if HF_TOKEN_PATH.exists():
+        return HF_TOKEN_PATH.read_text().strip()
+    return None
 
 
 class SpeakerIdentifier:
-    """Identify speakers using voice embeddings."""
+    """Identify speakers using voice embeddings.
     
-    def __init__(self, threshold: float = 0.7):
+    Supports two backends:
+    - MFCC (basic, no dependencies) - less accurate
+    - pyannote.audio (advanced, requires HF token) - more accurate
+    """
+    
+    def __init__(self, threshold: float = 0.85, use_advanced: bool = False):
         self.threshold = threshold
         self.my_embedding: Optional[np.ndarray] = None
-        self.model = None
+        self._model = None
+        self._use_advanced = use_advanced
+        self._hf_token = get_hf_token()
         self._load_profile()
         
     def _load_profile(self):
@@ -30,17 +43,31 @@ class SpeakerIdentifier:
         else:
             log.warning("No voice profile found. Run enrollment first.")
     
-    def load_model(self):
-        """Lazy load pyannote model."""
-        if self.model is None:
-            log.info("Loading speaker embedding model...")
-            from pyannote.audio import Model
-            self.model = Model.from_pretrained(
-                "pyannote/embedding",
-                use_auth_token=False
-            )
-            self.model.eval()
-            log.info("Model loaded.")
+    def _load_advanced_model(self):
+        """Load pyannote.audio model if HF token available."""
+        if self._model is None:
+            if not self._hf_token:
+                log.warning("No Hugging Face token. Using MFCC (basic) mode.")
+                self._use_advanced = False
+                return
+            
+            try:
+                log.info("Loading pyannote.audio model (advanced mode)...")
+                from pyannote.audio import Model, Inference
+                self._model = Model.from_pretrained(
+                    "pyannote/embedding",
+                    use_auth_token=self._hf_token
+                )
+                self._inference = Inference(
+                    "pyannote/embedding",
+                    use_auth_token=self._hf_token
+                )
+                self._use_advanced = True
+                log.info("pyannote.audio model loaded successfully!")
+            except Exception as e:
+                log.error(f"Failed to load pyannote.audio: {e}")
+                log.warning("Falling back to MFCC (basic) mode.")
+                self._use_advanced = False
     
     def extract_embedding(self, audio: np.ndarray, sample_rate: int = 16000) -> np.ndarray:
         """Extract voice embedding from audio.
@@ -50,27 +77,56 @@ class SpeakerIdentifier:
             sample_rate: Sample rate (default 16000)
             
         Returns:
-            512-dimensional embedding vector
+            Feature vector (78-dim for MFCC, 512-dim for pyannote)
         """
-        self.load_model()
-        
         # Ensure correct format
         if audio.dtype != np.float32:
             audio = audio.astype(np.float32)
         
-        # Convert to torch tensor
-        waveform = torch.from_numpy(audio).unsqueeze(0)
-        
         # Resample if needed
         if sample_rate != 16000:
-            resampler = torchaudio.transforms.Resample(sample_rate, 16000)
-            waveform = resampler(waveform)
+            from scipy import signal
+            num_samples = int(len(audio) * 16000 / sample_rate)
+            audio = signal.resample(audio, num_samples).astype(np.float32)
         
-        # Extract embedding
-        with torch.no_grad():
-            embedding = self.model(waveform)
+        # Try advanced mode if enabled
+        if self._use_advanced:
+            self._load_advanced_model()
+            
+            if self._use_advanced and self._model is not None:
+                return self._extract_pyannote(audio)
         
-        return embedding.numpy().flatten()
+        # Fallback to MFCC
+        return self._extract_mfcc(audio)
+    
+    def _extract_mfcc(self, audio: np.ndarray) -> np.ndarray:
+        """Extract MFCC features (basic mode)."""
+        import librosa
+        
+        # Get MFCCs (13 coefficients)
+        mfcc = librosa.feature.mfcc(y=audio, sr=16000, n_mfcc=13)
+        
+        # Get delta and delta-delta for better speaker characterization
+        delta = librosa.feature.delta(mfcc)
+        delta2 = librosa.feature.delta(mfcc, order=2)
+        
+        # Combine features
+        features = np.vstack([mfcc, delta, delta2])
+        
+        # Compute statistics (mean and std over time)
+        mean = np.mean(features, axis=1)
+        std = np.std(features, axis=1)
+        
+        return np.concatenate([mean, std])
+    
+    def _extract_pyannote(self, audio: np.ndarray) -> np.ndarray:
+        """Extract pyannote.audio embedding (advanced mode)."""
+        try:
+            embedding = self._inference(audio[np.newaxis, :])
+            return embedding.flatten()
+        except Exception as e:
+            log.error(f"pyannote extraction failed: {e}")
+            return self._extract_mfcc(audio)
     
     def enroll(self, audio: np.ndarray, sample_rate: int = 16000):
         """Enroll user's voice profile.

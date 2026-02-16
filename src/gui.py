@@ -5,6 +5,7 @@ import threading
 import logging
 import time
 import sys
+from pathlib import Path
 
 from .config import TranslatorConfig, Mode, MicMode, LOGS_DIR
 from .audio_devices import find_device, check_blackhole_installed
@@ -18,7 +19,7 @@ class TranslatorGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Live Translator RU↔EN")
-        self.root.geometry("520x670")
+        self.root.geometry("520x800")
         self.root.resizable(False, False)
         self.root.configure(bg="#1e1e2e")
 
@@ -124,6 +125,62 @@ class TranslatorGUI:
         )
         mic_menu.pack(anchor="w")
         mic_menu.bind("<<ComboboxSelected>>", self._on_mic_change)
+
+        # Direction buttons (manual switching)
+        dir_frame = ttk.Frame(self.root)
+        dir_frame.pack(fill="x", padx=20, pady=(5, 0))
+
+        ttk.Label(dir_frame, text="Translation Direction:", style="Small.TLabel").pack(anchor="w")
+        
+        btn_frame = ttk.Frame(dir_frame)
+        btn_frame.pack(fill="x", pady=(3, 0))
+
+        self.dir_var = tk.StringVar(value="outgoing")
+        
+        self.outgoing_btn = tk.Button(
+            btn_frame, text="ME → PARTNER (RU→EN)",
+            font=("SF Pro Display", 12, "bold"),
+            bg="#a6e3a1", fg="#1e1e2e", activebackground="#7dd99e",
+            relief="flat", width=22, height=1, cursor="hand2",
+            command=lambda: self._set_direction("outgoing"),
+        )
+        self.outgoing_btn.pack(side="left", padx=(0, 5))
+
+        self.incoming_btn = tk.Button(
+            btn_frame, text="PARTNER → ME (EN→RU)",
+            font=("SF Pro Display", 12, "bold"),
+            bg="#585b70", fg="#cdd6f4", activebackground="#6c7086",
+            relief="flat", width=22, height=1, cursor="hand2",
+            command=lambda: self._set_direction("incoming"),
+        )
+        self.incoming_btn.pack(side="left")
+
+        # Speaker ID settings
+        speaker_frame = ttk.Frame(self.root)
+        speaker_frame.pack(fill="x", padx=20, pady=(8, 0))
+
+        ttk.Label(speaker_frame, text="Speaker Identification:", style="Small.TLabel").pack(anchor="w")
+        
+        hf_frame = ttk.Frame(speaker_frame)
+        hf_frame.pack(fill="x", pady=(3, 0))
+
+        self.hf_token_var = tk.StringVar(value="")
+        ttk.Label(hf_frame, text="HF Token:", style="Small.TLabel").pack(side="left")
+        self.hf_entry = tk.Entry(
+            hf_frame, textvariable=self.hf_token_var,
+            width=25, bg="#313244", fg="#cdd6f4",
+            insertbackground="#cdd6f4", relief="flat"
+        )
+        self.hf_entry.pack(side="left", padx=(5, 5))
+        
+        self.enroll_btn = tk.Button(
+            hf_frame, text="ENROLL VOICE",
+            font=("SF Pro Display", 10, "bold"),
+            bg="#89b4fa", fg="#1e1e2e", activebackground="#b4d0fe",
+            relief="flat", width=12, cursor="hand2",
+            command=self._start_enrollment,
+        )
+        self.enroll_btn.pack(side="left")
 
         # Preview button - hear what your partner hears
         preview_frame = ttk.Frame(self.root)
@@ -358,6 +415,52 @@ class TranslatorGUI:
         mic_mode = self.mic_var.get()
         self.config.mic_mode = MicMode(mic_mode)
         self._log(f"Mic mode changed to: {mic_mode}")
+
+    def _set_direction(self, direction: str):
+        """Set translation direction manually."""
+        self.dir_var.set(direction)
+        
+        if direction == "outgoing":
+            # I speak Russian -> translate to English for partner
+            self.outgoing_btn.configure(bg="#a6e3a1", fg="#1e1e2e")
+            self.incoming_btn.configure(bg="#585b70", fg="#cdd6f4")
+            self._log("Direction: ME → PARTNER (RU→EN)", "outgoing")
+            
+            # Update engine if running
+            if self.streams:
+                self.streams.set_direction("outgoing")
+        else:
+            # Partner speaks English -> translate to Russian for me
+            self.outgoing_btn.configure(bg="#585b70", fg="#cdd6f4")
+            self.incoming_btn.configure(bg="#89b4fa", fg="#1e1e2e")
+            self._log("Direction: PARTNER → ME (EN→RU)", "incoming")
+            
+            # Update engine if running
+            if self.streams:
+                self.streams.set_direction("incoming")
+
+    def _start_enrollment(self):
+        """Start voice enrollment in a separate window."""
+        import subprocess
+        
+        token = self.hf_token_var.get().strip()
+        
+        # Save token to config if provided
+        if token:
+            config_path = Path(__file__).parent.parent / "config" / "hf_token.txt"
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            config_path.write_text(token)
+            self._log("Hugging Face token saved.", "system")
+        
+        self._log("Starting voice enrollment...", "system")
+        
+        # Run enrollment in terminal
+        subprocess.Popen(
+            ["osascript", "-e", 
+             f'tell app "Terminal" to do script "cd {Path(__file__).parent.parent} && source .venv/bin/activate && python -m src.enrollment"'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
 
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
