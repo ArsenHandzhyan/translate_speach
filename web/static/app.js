@@ -203,7 +203,7 @@ class TranslatorClient {
                 this.sendAudio();
             };
             
-            this.mediaRecorder.start(100); // Collect data every 100ms
+            this.mediaRecorder.start(); // Record as single chunk for valid WebM output
             
         } catch (error) {
             console.error('Recording error:', error);
