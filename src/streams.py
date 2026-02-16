@@ -235,6 +235,14 @@ class AudioStreamManager:
 
                     segments = vad.process_chunk(audio_int16)
                     for seg in segments:
+                        # Speaker ID check for outgoing (mic) when auto-detect is enabled
+                        if direction == "outgoing" and self._auto_detect_enabled and self._speaker_id:
+                            is_me, confidence = self._speaker_id.identify(seg.astype(np.float32) / 32768.0, 16000)
+                            if not is_me:
+                                log.debug(f"Ignoring segment - not my voice (confidence: {confidence:.2f})")
+                                continue
+                            log.debug(f"Accepting segment - my voice (confidence: {confidence:.2f})")
+                        
                         try:
                             segment_queue.put_nowait(seg)
                         except queue.Full:

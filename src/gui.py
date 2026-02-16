@@ -19,7 +19,7 @@ class TranslatorGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Живой Переводчик RU↔EN")
-        self.root.geometry("520x800")
+        self.root.geometry("540x900")
         self.root.resizable(False, False)
         self.root.configure(bg="#1e1e2e")
 
