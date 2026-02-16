@@ -51,6 +51,9 @@ class AudioStreamManager:
         # Manual direction control
         self._manual_direction = "outgoing"  # "outgoing" or "incoming"
         self._direction_lock = threading.Lock()
+        # Auto-detect speaker
+        self._auto_detect_enabled = False
+        self._speaker_id = None
 
     def _mute(self):
         """Mute the mic recorder (reference counted for nested calls)."""
@@ -79,6 +82,21 @@ class AudioStreamManager:
         """Get current translation direction."""
         with self._direction_lock:
             return self._manual_direction
+
+    def set_auto_detect(self, enabled: bool):
+        """Enable or disable automatic speaker detection."""
+        self._auto_detect_enabled = enabled
+        if enabled and self._speaker_id is None:
+            from .speaker_id import SpeakerIdentifier
+            self._speaker_id = SpeakerIdentifier()
+            if not self._speaker_id.is_enrolled():
+                log.warning("Auto-detect enabled but no voice profile!")
+                self._auto_detect_enabled = False
+                return
+        log.info(f"Auto speaker detection: {'enabled' if enabled else 'disabled'}")
+
+    def is_auto_detect_enabled(self) -> bool:
+        return self._auto_detect_enabled
 
     def start(self):
         self._running = True

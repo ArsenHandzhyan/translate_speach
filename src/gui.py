@@ -29,6 +29,7 @@ class TranslatorGUI:
         self.streams: AudioStreamManager | None = None
         self.is_running = False
         self.is_loading = False
+        self.voice_profile_exists = False
 
         # Style
         self.style = ttk.Style()
@@ -154,6 +155,27 @@ class TranslatorGUI:
             command=lambda: self._set_direction("incoming"),
         )
         self.incoming_btn.pack(side="left")
+
+        # Auto-detect speaker toggle
+        auto_frame = ttk.Frame(self.root)
+        auto_frame.pack(fill="x", padx=20, pady=(5, 0))
+
+        self.auto_detect_var = tk.BooleanVar(value=False)
+        self.auto_detect_btn = tk.Button(
+            auto_frame, text="АВТООПРЕДЕЛЕНИЕ: ВЫКЛ",
+            font=("SF Pro Display", 11, "bold"),
+            bg="#585b70", fg="#cdd6f4", activebackground="#6c7086",
+            relief="flat", width=44, height=1, cursor="hand2",
+            command=self._toggle_auto_detect,
+        )
+        self.auto_detect_btn.pack(fill="x")
+        
+        # Status label for speaker ID
+        self.speaker_status = ttk.Label(
+            auto_frame, text="Голосовой профиль: не загружен", 
+            style="Small.TLabel"
+        )
+        self.speaker_status.pack(anchor="w", pady=(2, 0))
 
         # Speaker ID settings
         speaker_frame = ttk.Frame(self.root)
@@ -302,6 +324,16 @@ class TranslatorGUI:
         else:
             self.device_labels["blackhole"].configure(text="НЕ НАЙДЕН", foreground=self.colors["red"])
 
+        # Check voice profile
+        from pathlib import Path
+        profile_path = Path(__file__).parent.parent / "config" / "voice_profile.npy"
+        if profile_path.exists():
+            self.speaker_status.configure(text="Голосовой профиль: загружен ✓", foreground=self.colors["green"])
+            self.voice_profile_exists = True
+        else:
+            self.speaker_status.configure(text="Голосовой профиль: не записан", foreground="#f9e2af")
+            self.voice_profile_exists = False
+
         self._log("Устройства проверены.")
 
     def _toggle(self):
@@ -444,6 +476,40 @@ class TranslatorGUI:
             # Update engine if running
             if self.streams:
                 self.streams.set_direction("incoming")
+
+    def _toggle_auto_detect(self):
+        """Toggle automatic speaker detection."""
+        if not hasattr(self, 'voice_profile_exists') or not self.voice_profile_exists:
+            self._log("Сначала запишите голосовой профиль!", "error")
+            self.auto_detect_var.set(False)
+            return
+        
+        self.auto_detect_var.set(not self.auto_detect_var.get())
+        
+        if self.auto_detect_var.get():
+            self.auto_detect_btn.configure(
+                text="АВТООПРЕДЕЛЕНИЕ: ВКЛ",
+                bg="#a6e3a1", fg="#1e1e2e"
+            )
+            self._log("Автоопределение говорящего включено", "outgoing")
+            # Disable manual direction buttons
+            self.outgoing_btn.configure(state="disabled")
+            self.incoming_btn.configure(state="disabled")
+            # Enable in streams
+            if self.streams:
+                self.streams.set_auto_detect(True)
+        else:
+            self.auto_detect_btn.configure(
+                text="АВТООПРЕДЕЛЕНИЕ: ВЫКЛ",
+                bg="#585b70", fg="#cdd6f4"
+            )
+            self._log("Автоопределение говорящего выключено", "system")
+            # Enable manual direction buttons
+            self.outgoing_btn.configure(state="normal")
+            self.incoming_btn.configure(state="normal")
+            # Disable in streams
+            if self.streams:
+                self.streams.set_auto_detect(False)
 
     def _start_enrollment(self):
         """Start voice enrollment in a separate window."""
