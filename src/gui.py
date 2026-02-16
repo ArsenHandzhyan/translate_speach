@@ -548,14 +548,25 @@ read
         script_path.write_text(script_content)
         os.chmod(script_path, 0o755)
         
-        # Use osascript to open Terminal with enrollment command
-        cmd = f'cd "{project_dir}" && source "{venv_path}" && python -m src.enrollment'
+        # Create a shell script and run it directly
+        script_path = project_dir / "enrollment_temp.sh"
+        script_content = f'''#!/bin/bash
+cd "{project_dir}"
+source "{venv_path}"
+python -m src.enrollment
+echo ""
+echo "Нажмите Enter чтобы закрыть..."
+read
+'''
+        script_path.write_text(script_content)
+        os.chmod(script_path, 0o755)
         
         try:
-            subprocess.run([
+            # Use Popen to avoid blocking and errors
+            subprocess.Popen([
                 "osascript", "-e",
-                f'tell application "Terminal" to do script "{cmd}"'
-            ], check=True)
+                f'tell application "Terminal" to do script "{script_path}"'
+            ])
             self._log("Terminal открыт для записи голоса", "system")
         except Exception as e:
             self._log(f"Ошибка открытия Terminal: {e}", "error")
