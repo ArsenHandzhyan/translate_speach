@@ -88,11 +88,19 @@ class AudioStreamManager:
         self._auto_detect_enabled = enabled
         if enabled and self._speaker_id is None:
             from .speaker_id import SpeakerIdentifier
-            self._speaker_id = SpeakerIdentifier()
+            self._speaker_id = SpeakerIdentifier(use_advanced=True)
             if not self._speaker_id.is_enrolled():
                 log.warning("Auto-detect enabled but no voice profile!")
                 self._auto_detect_enabled = False
                 return
+            # Pre-load advanced model if available
+            if self._speaker_id._hf_token:
+                log.info("Pre-loading pyannote.audio model...")
+                self._speaker_id._load_advanced_model()
+                if self._speaker_id._use_advanced:
+                    log.info("pyannote.audio loaded successfully!")
+                else:
+                    log.warning("Using MFCC mode (pyannote failed to load)")
         log.info(f"Auto speaker detection: {'enabled' if enabled else 'disabled'}")
 
     def is_auto_detect_enabled(self) -> bool:
