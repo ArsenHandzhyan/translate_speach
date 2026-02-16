@@ -116,7 +116,7 @@ def main():
         print("\nCreating voice profile...")
         print("(This may take a moment - loading ML model)\n")
         
-        speaker_id = SpeakerIdentifier()
+        speaker_id = SpeakerIdentifier(use_advanced=True)
         speaker_id.enroll(audio, sample_rate=SAMPLE_RATE)
         
         print("\n" + "="*60)
