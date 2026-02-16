@@ -18,8 +18,12 @@ log = logging.getLogger(__name__)
 def resample(audio: np.ndarray, from_sr: int, to_sr: int) -> np.ndarray:
     if from_sr == to_sr:
         return audio
-    import librosa
-    return librosa.resample(audio, orig_sr=from_sr, target_sr=to_sr).astype(audio.dtype)
+    # Simple linear interpolation resampling (avoids scipy mutex issues on Python 3.14)
+    ratio = to_sr / from_sr
+    num_samples = int(len(audio) * ratio)
+    old_indices = np.arange(len(audio))
+    new_indices = np.linspace(0, len(audio) - 1, num_samples)
+    return np.interp(new_indices, old_indices, audio).astype(np.float32)
 
 
 class AudioStreamManager:

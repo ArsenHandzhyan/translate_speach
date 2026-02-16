@@ -83,11 +83,13 @@ class SpeakerIdentifier:
         if audio.dtype != np.float32:
             audio = audio.astype(np.float32)
         
-        # Resample if needed
+        # Resample if needed (using numpy to avoid scipy mutex issues)
         if sample_rate != 16000:
-            from scipy import signal
-            num_samples = int(len(audio) * 16000 / sample_rate)
-            audio = signal.resample(audio, num_samples).astype(np.float32)
+            ratio = 16000 / sample_rate
+            num_samples = int(len(audio) * ratio)
+            old_indices = np.arange(len(audio))
+            new_indices = np.linspace(0, len(audio) - 1, num_samples)
+            audio = np.interp(new_indices, old_indices, audio).astype(np.float32)
         
         # Try advanced mode if enabled
         if self._use_advanced:
