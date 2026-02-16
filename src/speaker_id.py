@@ -27,7 +27,7 @@ class SpeakerIdentifier:
     - pyannote.audio (advanced, requires HF token) - more accurate
     """
     
-    def __init__(self, threshold: float = 0.65, use_advanced: bool = False):
+    def __init__(self, threshold: float = 0.50, use_advanced: bool = False):
         self.threshold = threshold
         self.my_embedding: Optional[np.ndarray] = None
         self._model = None

@@ -577,7 +577,7 @@ class TranslatorGUI:
                 
                 from .speaker_id import SpeakerIdentifier
                 sid = SpeakerIdentifier(use_advanced=True)
-                sid.enroll(audio, sample_rate=sample_rate)
+                sid.enroll(audio, sample_rate=16000)
                 
                 self.root.after(0, lambda: self._log("✓ Голосовой профиль создан!", "outgoing"))
                 self.root.after(0, lambda: self.enroll_btn.configure(state="normal", text="ЗАПИСЬ ГОЛОСА"))
