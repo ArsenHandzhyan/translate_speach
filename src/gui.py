@@ -535,12 +535,33 @@ class TranslatorGUI:
         
         def do_enrollment():
             try:
-                # Record 30 seconds
+                # Use the same microphone as in config
+                from .audio_devices import find_device
+                mic_idx = find_device(self.config.input_device, kind="input")
+                if mic_idx is None:
+                    self.root.after(0, lambda: self._log("Микрофон не найден!", "error"))
+                    self.root.after(0, lambda: self.enroll_btn.configure(state="normal", text="ЗАПИСЬ ГОЛОСА"))
+                    return
+                
+                # Get device sample rate
+                device_sr = int(sd.query_devices(mic_idx)["default_samplerate"])
+                
+                # Record 30 seconds at device sample rate, then resample
                 duration = 30
-                sample_rate = 16000
-                audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype=np.float32)
+                self.root.after(0, lambda: self._log(f"Запись с микрофона [{mic_idx}]...", "system"))
+                
+                audio = sd.rec(int(duration * device_sr), samplerate=device_sr, 
+                              channels=1, dtype=np.float32, device=mic_idx)
                 sd.wait()
                 audio = audio.flatten()
+                
+                # Resample to 16kHz if needed
+                if device_sr != 16000:
+                    ratio = 16000 / device_sr
+                    num_samples = int(len(audio) * ratio)
+                    old_indices = np.arange(len(audio))
+                    new_indices = np.linspace(0, len(audio) - 1, num_samples)
+                    audio = np.interp(new_indices, old_indices, audio).astype(np.float32)
                 
                 # Check level
                 rms = np.sqrt(np.mean(audio ** 2))
