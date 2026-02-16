@@ -548,11 +548,13 @@ read
         script_path.write_text(script_content)
         os.chmod(script_path, 0o755)
         
-        # Open in Terminal.app
+        # Use osascript to open Terminal with enrollment command
+        cmd = f'cd "{project_dir}" && source "{venv_path}" && python -m src.enrollment'
+        
         try:
             subprocess.run([
-                "open", "-a", "Terminal.app",
-                str(script_path)
+                "osascript", "-e",
+                f'tell application "Terminal" to do script "{cmd}"'
             ], check=True)
             self._log("Terminal открыт для записи голоса", "system")
         except Exception as e:
