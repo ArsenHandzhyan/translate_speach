@@ -54,3 +54,4 @@ config/*.json
 *.temp
 tmp/
 temp/
+config/hf_token.txt

@@ -448,6 +448,7 @@ class TranslatorGUI:
     def _start_enrollment(self):
         """Start voice enrollment in a separate window."""
         import subprocess
+        import os
         
         token = self.hf_token_var.get().strip()
         
@@ -460,13 +461,33 @@ class TranslatorGUI:
         
         self._log("Запуск записи голоса...", "system")
         
-        # Run enrollment in terminal
-        subprocess.Popen(
-            ["osascript", "-e", 
-             f'tell app "Terminal" to do script "cd {Path(__file__).parent.parent} && source .venv/bin/activate && python -m src.enrollment"'],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
+        # Get the project directory
+        project_dir = Path(__file__).parent.parent
+        venv_path = project_dir / ".venv" / "bin" / "activate"
+        
+        # Create a shell script to run enrollment
+        script_content = f'''#!/bin/bash
+cd "{project_dir}"
+source "{venv_path}"
+python -m src.enrollment
+echo ""
+echo "Нажмите Enter чтобы закрыть..."
+read
+'''
+        
+        script_path = project_dir / "enrollment_temp.sh"
+        script_path.write_text(script_content)
+        os.chmod(script_path, 0o755)
+        
+        # Open in Terminal.app
+        try:
+            subprocess.run([
+                "open", "-a", "Terminal.app",
+                str(script_path)
+            ], check=True)
+            self._log("Terminal открыт для записи голоса", "system")
+        except Exception as e:
+            self._log(f"Ошибка открытия Terminal: {e}", "error")
 
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)

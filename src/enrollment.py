@@ -107,8 +107,9 @@ def main():
         rms = np.sqrt(np.mean(audio ** 2))
         log.info(f"Audio RMS level: {rms:.4f}")
         
-        if rms < 0.01:
+        if rms < 0.005:
             log.error("Audio level too low! Please check your microphone and try again.")
+            log.error("Tips: speak closer to microphone, increase input volume in System Settings")
             return
         
         # Create speaker identifier and enroll
