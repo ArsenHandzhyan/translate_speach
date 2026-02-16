@@ -56,11 +56,11 @@ class SpeakerIdentifier:
                 from pyannote.audio import Model, Inference
                 self._model = Model.from_pretrained(
                     "pyannote/embedding",
-                    use_auth_token=self._hf_token
+                    token=self._hf_token
                 )
                 self._inference = Inference(
-                    "pyannote/embedding",
-                    use_auth_token=self._hf_token
+                    self._model,
+                    window="whole"
                 )
                 self._use_advanced = True
                 log.info("pyannote.audio model loaded successfully!")

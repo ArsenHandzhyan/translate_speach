@@ -247,9 +247,9 @@ class AudioStreamManager:
                         if direction == "outgoing" and self._auto_detect_enabled and self._speaker_id:
                             is_me, confidence = self._speaker_id.identify(seg.astype(np.float32) / 32768.0, 16000)
                             if not is_me:
-                                log.debug(f"Ignoring segment - not my voice (confidence: {confidence:.2f})")
+                                log.info(f"IGNORING segment - NOT my voice (confidence: {confidence:.2f})")
                                 continue
-                            log.debug(f"Accepting segment - my voice (confidence: {confidence:.2f})")
+                            log.info(f"ACCEPTING segment - MY voice (confidence: {confidence:.2f})")
                         
                         try:
                             segment_queue.put_nowait(seg)
