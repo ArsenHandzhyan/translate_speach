@@ -27,7 +27,7 @@ class SpeakerIdentifier:
     - pyannote.audio (advanced, requires HF token) - more accurate
     """
     
-    def __init__(self, threshold: float = 0.50, use_advanced: bool = False):
+    def __init__(self, threshold: float = 0.30, use_advanced: bool = False):
         self.threshold = threshold
         self.my_embedding: Optional[np.ndarray] = None
         self._model = None
@@ -141,7 +141,14 @@ class SpeakerIdentifier:
             sample_rate: Sample rate
         """
         log.info("Creating voice profile...")
-        self.my_embedding = self.extract_embedding(audio, sample_rate)
+        embedding = self.extract_embedding(audio, sample_rate)
+        
+        # Normalize embedding for cosine similarity
+        norm = np.linalg.norm(embedding)
+        self.my_embedding = embedding / norm
+        
+        log.info(f"Embedding shape: {self.my_embedding.shape}")
+        log.info(f"Embedding normalized: norm={np.linalg.norm(self.my_embedding):.4f}")
         
         # Save profile
         PROFILE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -166,6 +173,11 @@ class SpeakerIdentifier:
         
         # Extract embedding
         embedding = self.extract_embedding(audio, sample_rate)
+        
+        # Normalize for cosine similarity
+        norm = np.linalg.norm(embedding)
+        if norm > 0:
+            embedding = embedding / norm
         
         # Calculate cosine similarity
         similarity = self._cosine_similarity(embedding, self.my_embedding)
