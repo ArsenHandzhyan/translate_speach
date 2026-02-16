@@ -124,7 +124,10 @@ class SpeakerIdentifier:
     def _extract_pyannote(self, audio: np.ndarray) -> np.ndarray:
         """Extract pyannote.audio embedding (advanced mode)."""
         try:
-            embedding = self._inference(audio[np.newaxis, :])
+            import torch
+            # pyannote expects dict with waveform and sample_rate
+            waveform = torch.from_numpy(audio[np.newaxis, :])  # (1, samples)
+            embedding = self._inference({"waveform": waveform, "sample_rate": 16000})
             return embedding.flatten()
         except Exception as e:
             log.error(f"pyannote extraction failed: {e}")
