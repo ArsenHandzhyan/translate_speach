@@ -515,9 +515,10 @@ class TranslatorGUI:
                 self.streams.set_auto_detect(False)
 
     def _start_enrollment(self):
-        """Start voice enrollment in a separate window."""
-        import subprocess
-        import os
+        """Start voice enrollment directly in the app."""
+        import threading
+        import numpy as np
+        import sounddevice as sd
         
         token = self.hf_token_var.get().strip()
         
@@ -528,57 +529,45 @@ class TranslatorGUI:
             config_path.write_text(token)
             self._log("Hugging Face токен сохранён.", "system")
         
-        self._log("Запуск записи голоса...", "system")
+        # Disable enrollment button during recording
+        self.enroll_btn.configure(state="disabled", text="ЗАПИСЬ...")
+        self._log("Запись голоса 30 секунд... Говорите!", "system")
         
-        # Get the project directory
-        project_dir = Path(__file__).parent.parent
-        venv_path = project_dir / ".venv" / "bin" / "activate"
+        def do_enrollment():
+            try:
+                # Record 30 seconds
+                duration = 30
+                sample_rate = 16000
+                audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype=np.float32)
+                sd.wait()
+                audio = audio.flatten()
+                
+                # Check level
+                rms = np.sqrt(np.mean(audio ** 2))
+                self.root.after(0, lambda: self._log(f"Уровень звука: {rms:.4f}", "system"))
+                
+                if rms < 0.005:
+                    self.root.after(0, lambda: self._log("Слишком тихо! Говорите громче.", "error"))
+                    self.root.after(0, lambda: self.enroll_btn.configure(state="normal", text="ЗАПИСЬ ГОЛОСА"))
+                    return
+                
+                # Create voice profile
+                self.root.after(0, lambda: self._log("Создание профиля...", "system"))
+                
+                from .speaker_id import SpeakerIdentifier
+                sid = SpeakerIdentifier(use_advanced=True)
+                sid.enroll(audio, sample_rate=sample_rate)
+                
+                self.root.after(0, lambda: self._log("✓ Голосовой профиль создан!", "outgoing"))
+                self.root.after(0, lambda: self.enroll_btn.configure(state="normal", text="ЗАПИСЬ ГОЛОСА"))
+                
+            except Exception as e:
+                self.root.after(0, lambda: self._log(f"Ошибка записи: {e}", "error"))
+                self.root.after(0, lambda: self.enroll_btn.configure(state="normal", text="ЗАПИСЬ ГОЛОСА"))
         
-        # Create a shell script to run enrollment
-        script_content = f'''#!/bin/bash
-cd "{project_dir}"
-source "{venv_path}"
-python -m src.enrollment
-echo ""
-echo "Нажмите Enter чтобы закрыть..."
-read
-'''
-        
-        script_path = project_dir / "enrollment_temp.sh"
-        script_path.write_text(script_content)
-        os.chmod(script_path, 0o755)
-        
-        # Create a shell script and run it directly
-        script_path = project_dir / "enrollment_temp.sh"
-        script_content = f'''#!/bin/bash
-cd "{project_dir}"
-source "{venv_path}"
-python -m src.enrollment
-echo ""
-echo "Нажмите Enter чтобы закрыть..."
-read
-'''
-        script_path.write_text(script_content)
-        os.chmod(script_path, 0o755)
-        
-        try:
-            # Direct Terminal launch via open command
-            import shlex
-            # Create a command that Terminal will execute
-            cmd = f'bash "{script_path}"'
-            # Use open to launch Terminal with the script
-            result = subprocess.run(
-                ["open", "-b", "com.apple.Terminal", str(script_path)],
-                capture_output=True, text=True
-            )
-            if result.returncode == 0:
-                self._log("Terminal открыт для записи голоса", "system")
-            else:
-                self._log(f"Ошибка Terminal: {result.stderr}", "error")
-                # Fallback: try to open in new Terminal window
-                subprocess.Popen(["open", "-a", "Terminal", str(project_dir)])
-        except Exception as e:
-            self._log(f"Ошибка открытия Terminal: {e}", "error")
+        # Run in background thread
+        threading.Thread(target=do_enrollment, daemon=True).start()
+
 
     def run(self):
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
