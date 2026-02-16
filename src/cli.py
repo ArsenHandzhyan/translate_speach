@@ -99,6 +99,14 @@ def main():
     # devices
     sub.add_parser("devices", help="List audio devices")
 
+    # enroll
+    sub.add_parser("enroll", help="Create voice profile for speaker identification")
+
+    # speaker-aware mode
+    speaker_p = sub.add_parser("speaker", help="Start translator with speaker identification")
+    speaker_p.add_argument("--mode", choices=["local", "cloud", "hybrid"], default="hybrid")
+    speaker_p.add_argument("--verbose", "-v", action="store_true")
+
     args = parser.parse_args()
 
     if args.command is None:
@@ -107,6 +115,15 @@ def main():
 
     if args.command == "devices":
         print_routing_status()
+        return
+
+    if args.command == "enroll":
+        from .enrollment import main as enroll_main
+        enroll_main()
+        return
+
+    if args.command == "speaker":
+        _run_speaker_aware(args)
         return
 
     if args.command == "status":
@@ -145,6 +162,54 @@ def main():
         signal.signal(signal.SIGTERM, sig_handler)
 
         app.run()
+
+
+def _run_speaker_aware(args):
+    """Run translator with speaker identification."""
+    from .speaker_aware_translator import create_speaker_aware_translator
+    from .speaker_id import SpeakerIdentifier
+
+    # Check enrollment
+    speaker_id = SpeakerIdentifier()
+    if not speaker_id.is_enrolled():
+        print("=" * 60)
+        print("  VOICE PROFILE NOT FOUND!")
+        print("=" * 60)
+        print("\nYou need to create a voice profile first.")
+        print("Run: translator enroll")
+        print("\nThis will record your voice for 30 seconds.")
+        return
+
+    print("=" * 60)
+    print("  Speaker-Aware Live Translator")
+    print("=" * 60)
+    print("\n  Features:")
+    print("  - Automatic speaker identification")
+    print("  - Your voice → RU→EN → Partner")
+    print("  - Other voices → EN→RU → You")
+    print("\n  Press Ctrl+C to stop.\n")
+
+    config = TranslatorConfig(
+        mode=Mode(args.mode),
+        mic_mode=MicMode.TRANSLATED,
+        whisper_model="small",
+    )
+    setup_logging(config.log_file, verbose=args.verbose)
+
+    def on_subtitle(direction, original, translated):
+        arrow = "YOU→EN" if direction == "outgoing" else "PARTNER→RU"
+        print(f"\n  [{arrow}] {original}")
+        print(f"  [{arrow}] → {translated}")
+
+    manager = create_speaker_aware_translator(config, on_subtitle)
+
+    try:
+        manager.start()
+        while True:
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        manager.stop()
+        print("\n  Stopped.")
 
 
 def _run_test():

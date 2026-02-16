@@ -32,6 +32,22 @@ Real-time speech-to-speech translation system supporting RU↔EN bidirectional t
 
 ## Quick Start
 
+### macOS with Speaker Identification (Recommended)
+
+Automatic detection of who is speaking - no buttons needed!
+
+```bash
+# 1. First time setup - create voice profile
+python -m src.enrollment
+# Speak for 30 seconds
+
+# 2. Run translator with speaker awareness
+translator speaker
+# System automatically detects:
+# - Your voice → RU→EN → Partner
+# - Other voice → EN→RU → You
+```
+
 ### Web Interface
 
 1. Open https://translate-speach.onrender.com in your browser
@@ -60,6 +76,10 @@ python -m uvicorn src.web_server:app --host 0.0.0.0 --port 8000
 
 # Or run desktop app (macOS only)
 python run.py
+
+# Or run with speaker identification
+python -m src.enrollment  # First time only
+translator speaker
 ```
 
 ## Deployment
