@@ -562,12 +562,21 @@ read
         os.chmod(script_path, 0o755)
         
         try:
-            # Use Popen to avoid blocking and errors
-            subprocess.Popen([
-                "osascript", "-e",
-                f'tell application "Terminal" to do script "{script_path}"'
-            ])
-            self._log("Terminal открыт для записи голоса", "system")
+            # Direct Terminal launch via open command
+            import shlex
+            # Create a command that Terminal will execute
+            cmd = f'bash "{script_path}"'
+            # Use open to launch Terminal with the script
+            result = subprocess.run(
+                ["open", "-b", "com.apple.Terminal", str(script_path)],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                self._log("Terminal открыт для записи голоса", "system")
+            else:
+                self._log(f"Ошибка Terminal: {result.stderr}", "error")
+                # Fallback: try to open in new Terminal window
+                subprocess.Popen(["open", "-a", "Terminal", str(project_dir)])
         except Exception as e:
             self._log(f"Ошибка открытия Terminal: {e}", "error")
 
