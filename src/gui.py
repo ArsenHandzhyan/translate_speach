@@ -366,6 +366,9 @@ class TranslatorGUI:
                 self.engine.load_models()
 
                 self.streams = AudioStreamManager(self.config, self.engine)
+                # Pass auto-detect state if enabled
+                if self.auto_detect_var.get():
+                    self.streams.set_auto_detect(True)
                 self.streams.start()
 
                 self.is_running = True
