@@ -18,7 +18,7 @@ log = logging.getLogger("translator")
 class TranslatorGUI:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Live Translator RU↔EN")
+        self.root.title("Живой Переводчик RU↔EN")
         self.root.geometry("520x800")
         self.root.resizable(False, False)
         self.root.configure(bg="#1e1e2e")
@@ -75,7 +75,7 @@ class TranslatorGUI:
         frame = ttk.Frame(self.root)
         frame.pack(fill="x", padx=20, pady=(15, 5))
 
-        ttk.Label(frame, text="Live Translator", style="Header.TLabel").pack(side="left")
+        ttk.Label(frame, text="Живой Переводчик", style="Header.TLabel").pack(side="left")
 
         self.status_dot = tk.Canvas(frame, width=14, height=14, bg=self.colors["bg"], highlightthickness=0)
         self.status_dot.pack(side="right", padx=(0, 5))
@@ -91,7 +91,7 @@ class TranslatorGUI:
 
         # Start/Stop button
         self.start_btn = tk.Button(
-            frame, text="START", font=("SF Pro Display", 15, "bold"),
+            frame, text="СТАРТ", font=("SF Pro Display", 15, "bold"),
             bg=self.colors["green"], fg="#1e1e2e", activebackground="#7dd99e",
             relief="flat", width=12, height=1, cursor="hand2",
             command=self._toggle,
@@ -102,7 +102,7 @@ class TranslatorGUI:
         mode_frame = ttk.Frame(frame)
         mode_frame.pack(side="left", fill="y")
 
-        ttk.Label(mode_frame, text="Mode:", style="Small.TLabel").pack(anchor="w")
+        ttk.Label(mode_frame, text="Режим:", style="Small.TLabel").pack(anchor="w")
         self.mode_var = tk.StringVar(value="hybrid")
         mode_menu = ttk.Combobox(
             mode_frame, textvariable=self.mode_var,
@@ -116,11 +116,11 @@ class TranslatorGUI:
         mic_frame = ttk.Frame(frame)
         mic_frame.pack(side="left", fill="y", padx=(15, 0))
 
-        ttk.Label(mic_frame, text="Mic sends:", style="Small.TLabel").pack(anchor="w")
+        ttk.Label(mic_frame, text="Микрофон:", style="Small.TLabel").pack(anchor="w")
         self.mic_var = tk.StringVar(value="translated")
         mic_menu = ttk.Combobox(
             mic_frame, textvariable=self.mic_var,
-            values=["translated", "original", "both"],
+            values=["перевод", "оригинал", "оба"],
             state="readonly", width=10,
         )
         mic_menu.pack(anchor="w")
@@ -130,7 +130,7 @@ class TranslatorGUI:
         dir_frame = ttk.Frame(self.root)
         dir_frame.pack(fill="x", padx=20, pady=(5, 0))
 
-        ttk.Label(dir_frame, text="Translation Direction:", style="Small.TLabel").pack(anchor="w")
+        ttk.Label(dir_frame, text="Направление перевода:", style="Small.TLabel").pack(anchor="w")
         
         btn_frame = ttk.Frame(dir_frame)
         btn_frame.pack(fill="x", pady=(3, 0))
@@ -138,7 +138,7 @@ class TranslatorGUI:
         self.dir_var = tk.StringVar(value="outgoing")
         
         self.outgoing_btn = tk.Button(
-            btn_frame, text="ME → PARTNER (RU→EN)",
+            btn_frame, text="Я → СОБЕСЕДНИК (RU→EN)",
             font=("SF Pro Display", 12, "bold"),
             bg="#a6e3a1", fg="#1e1e2e", activebackground="#7dd99e",
             relief="flat", width=22, height=1, cursor="hand2",
@@ -147,7 +147,7 @@ class TranslatorGUI:
         self.outgoing_btn.pack(side="left", padx=(0, 5))
 
         self.incoming_btn = tk.Button(
-            btn_frame, text="PARTNER → ME (EN→RU)",
+            btn_frame, text="СОБЕСЕДНИК → Я (EN→RU)",
             font=("SF Pro Display", 12, "bold"),
             bg="#585b70", fg="#cdd6f4", activebackground="#6c7086",
             relief="flat", width=22, height=1, cursor="hand2",
@@ -159,13 +159,13 @@ class TranslatorGUI:
         speaker_frame = ttk.Frame(self.root)
         speaker_frame.pack(fill="x", padx=20, pady=(8, 0))
 
-        ttk.Label(speaker_frame, text="Speaker Identification:", style="Small.TLabel").pack(anchor="w")
+        ttk.Label(speaker_frame, text="Распознавание голоса:", style="Small.TLabel").pack(anchor="w")
         
         hf_frame = ttk.Frame(speaker_frame)
         hf_frame.pack(fill="x", pady=(3, 0))
 
         self.hf_token_var = tk.StringVar(value="")
-        ttk.Label(hf_frame, text="HF Token:", style="Small.TLabel").pack(side="left")
+        ttk.Label(hf_frame, text="HF Токен:", style="Small.TLabel").pack(side="left")
         self.hf_entry = tk.Entry(
             hf_frame, textvariable=self.hf_token_var,
             width=25, bg="#313244", fg="#cdd6f4",
@@ -174,7 +174,7 @@ class TranslatorGUI:
         self.hf_entry.pack(side="left", padx=(5, 5))
         
         self.enroll_btn = tk.Button(
-            hf_frame, text="ENROLL VOICE",
+            hf_frame, text="ЗАПИСЬ ГОЛОСА",
             font=("SF Pro Display", 10, "bold"),
             bg="#89b4fa", fg="#1e1e2e", activebackground="#b4d0fe",
             relief="flat", width=12, cursor="hand2",
@@ -187,7 +187,7 @@ class TranslatorGUI:
         preview_frame.pack(fill="x", padx=20, pady=(5, 0))
 
         self.preview_btn = tk.Button(
-            preview_frame, text="PREVIEW OFF",
+            preview_frame, text="ПРЕСЛУШИВАНИЕ ВЫКЛ",
             font=("SF Pro Display", 12, "bold"),
             bg="#585b70", fg="#cdd6f4", activebackground="#6c7086",
             relief="flat", width=30, height=1, cursor="hand2",
@@ -206,15 +206,15 @@ class TranslatorGUI:
 
         self.device_labels = {}
         devices = [
-            ("mic", "Microphone"),
-            ("speaker", "Speaker"),
-            ("blackhole", "Virtual Mic (BlackHole)"),
+            ("mic", "Микрофон"),
+            ("speaker", "Динамик"),
+            ("blackhole", "Виртуальный мик (BlackHole)"),
         ]
         for key, label in devices:
             row = ttk.Frame(frame)
             row.pack(fill="x", pady=1)
             ttk.Label(row, text=f"{label}:", style="Small.TLabel", width=25).pack(side="left")
-            lbl = ttk.Label(row, text="checking...", style="Small.TLabel")
+            lbl = ttk.Label(row, text="проверка...", style="Small.TLabel")
             lbl.pack(side="left")
             self.device_labels[key] = lbl
 
@@ -222,7 +222,7 @@ class TranslatorGUI:
         frame = ttk.Frame(self.root)
         frame.pack(fill="both", expand=True, padx=20, pady=(5, 5))
 
-        ttk.Label(frame, text="Translation Log:", style="Small.TLabel").pack(anchor="w")
+        ttk.Label(frame, text="Журнал переводов:", style="Small.TLabel").pack(anchor="w")
 
         self.log_text = scrolledtext.ScrolledText(
             frame, height=12, wrap="word",
@@ -246,7 +246,7 @@ class TranslatorGUI:
         bar.pack_propagate(False)
 
         self.status_label = tk.Label(
-            bar, text="Ready", bg="#313244", fg="#6c7086",
+            bar, text="Готов", bg="#313244", fg="#6c7086",
             font=("SF Mono", 11), anchor="w",
         )
         self.status_label.pack(side="left", padx=10)
@@ -288,21 +288,21 @@ class TranslatorGUI:
             name = sd.query_devices(mic)["name"]
             self.device_labels["mic"].configure(text=name, foreground=self.colors["green"])
         else:
-            self.device_labels["mic"].configure(text="NOT FOUND", foreground=self.colors["red"])
+            self.device_labels["mic"].configure(text="НЕ НАЙДЕН", foreground=self.colors["red"])
 
         if spk is not None:
             name = sd.query_devices(spk)["name"]
             self.device_labels["speaker"].configure(text=name, foreground=self.colors["green"])
         else:
-            self.device_labels["speaker"].configure(text="NOT FOUND", foreground=self.colors["red"])
+            self.device_labels["speaker"].configure(text="НЕ НАЙДЕН", foreground=self.colors["red"])
 
         if bh is not None:
             name = sd.query_devices(bh)["name"]
             self.device_labels["blackhole"].configure(text=name, foreground=self.colors["green"])
         else:
-            self.device_labels["blackhole"].configure(text="NOT FOUND", foreground=self.colors["red"])
+            self.device_labels["blackhole"].configure(text="НЕ НАЙДЕН", foreground=self.colors["red"])
 
-        self._log("Devices checked.")
+        self._log("Устройства проверены.")
 
     def _toggle(self):
         if self.is_loading:
@@ -314,15 +314,18 @@ class TranslatorGUI:
 
     def _start(self):
         self.is_loading = True
-        self.start_btn.configure(text="LOADING...", bg="#f9e2af", state="disabled")
+        self.start_btn.configure(text="ЗАГРУЗКА...", bg="#f9e2af", state="disabled")
         self._draw_dot("#f9e2af")
-        self._set_status("Loading models...")
-        self._log("Starting translator...")
+        self._set_status("Загрузка моделей...")
+        self._log("Запуск переводчика...")
 
         def _run():
             try:
                 self.config.mode = Mode(self.mode_var.get())
-                self.config.mic_mode = MicMode(self.mic_var.get())
+                # Map Russian mic mode to enum
+                mic_map = {"перевод": "translated", "оригинал": "original", "оба": "both"}
+                mic_val = mic_map.get(self.mic_var.get(), "translated")
+                self.config.mic_mode = MicMode(mic_val)
 
                 self.engine = TranslationEngine(self.config)
                 self.engine.on_subtitle = self._on_subtitle
@@ -344,8 +347,8 @@ class TranslatorGUI:
         threading.Thread(target=_run, daemon=True).start()
 
     def _stop(self):
-        self._log("Stopping translator...")
-        self._set_status("Stopping...")
+        self._log("Остановка переводчика...")
+        self._set_status("Остановка...")
 
         if self.streams:
             self.streams.stop()
@@ -354,22 +357,22 @@ class TranslatorGUI:
         self.engine = None
         self.is_running = False
 
-        self.start_btn.configure(text="START", bg=self.colors["green"], state="normal")
+        self.start_btn.configure(text="СТАРТ", bg=self.colors["green"], state="normal")
         self._draw_dot("gray")
-        self._set_status("Stopped")
-        self._log("Translator stopped.")
+        self._set_status("Остановлен")
+        self._log("Переводчик остановлен.")
 
     def _update_ui_running(self):
-        self.start_btn.configure(text="STOP", bg=self.colors["red"], state="normal")
+        self.start_btn.configure(text="СТОП", bg=self.colors["red"], state="normal")
         self._draw_dot(self.colors["green"])
-        self._set_status(f"Running — mode: {self.config.mode.value}")
-        self._log("Translator is running. Speak into your microphone.", "system")
+        self._set_status(f"Работает — режим: {self.config.mode.value}")
+        self._log("Переводчик запущен. Говорите в микрофон.", "system")
 
     def _on_error(self, msg: str):
-        self.start_btn.configure(text="START", bg=self.colors["green"], state="normal")
+        self.start_btn.configure(text="СТАРТ", bg=self.colors["green"], state="normal")
         self._draw_dot(self.colors["red"])
-        self._set_status(f"Error: {msg[:50]}")
-        self._log(f"ERROR: {msg}", "error")
+        self._set_status(f"Ошибка: {msg[:50]}")
+        self._log(f"ОШИБКА: {msg}", "error")
 
     def _on_subtitle(self, direction: str, original: str, translated: str):
         if direction == "incoming":
@@ -389,32 +392,35 @@ class TranslatorGUI:
         self.preview_on = not self.preview_on
         if self.preview_on:
             self.preview_btn.configure(
-                text="PREVIEW ON — you hear the translation",
+                text="ПРЕСЛУШИВАНИЕ ВКЛ",
                 bg="#f9e2af", fg="#1e1e2e",
             )
             if self.streams:
                 self.streams.preview_enabled = True
-            self._log("Preview ON — translation plays through your speakers", "system")
+            self._log("Преслушивание включено", "system")
         else:
             self.preview_btn.configure(
-                text="PREVIEW OFF",
+                text="ПРЕСЛУШИВАНИЕ ВЫКЛ",
                 bg="#585b70", fg="#cdd6f4",
             )
             if self.streams:
                 self.streams.preview_enabled = False
-            self._log("Preview OFF", "system")
+            self._log("Преслушивание выключено", "system")
 
     def _on_mode_change(self, event=None):
         mode = self.mode_var.get()
         self.config.mode = Mode(mode)
-        self._log(f"Mode changed to: {mode}")
+        self._log(f"Режим изменён на: {mode}")
         if self.is_running:
-            self._log("Restart required to apply mode change.", "system")
+            self._log("Требуется перезапуск для применения изменений.", "system")
 
     def _on_mic_change(self, event=None):
         mic_mode = self.mic_var.get()
-        self.config.mic_mode = MicMode(mic_mode)
-        self._log(f"Mic mode changed to: {mic_mode}")
+        # Map Russian to English
+        mic_map = {"перевод": "translated", "оригинал": "original", "оба": "both"}
+        mic_val = mic_map.get(mic_mode, "translated")
+        self.config.mic_mode = MicMode(mic_val)
+        self._log(f"Режим микрофона: {mic_mode}")
 
     def _set_direction(self, direction: str):
         """Set translation direction manually."""
@@ -424,7 +430,7 @@ class TranslatorGUI:
             # I speak Russian -> translate to English for partner
             self.outgoing_btn.configure(bg="#a6e3a1", fg="#1e1e2e")
             self.incoming_btn.configure(bg="#585b70", fg="#cdd6f4")
-            self._log("Direction: ME → PARTNER (RU→EN)", "outgoing")
+            self._log("Направление: Я → СОБЕСЕДНИК (RU→EN)", "outgoing")
             
             # Update engine if running
             if self.streams:
@@ -433,7 +439,7 @@ class TranslatorGUI:
             # Partner speaks English -> translate to Russian for me
             self.outgoing_btn.configure(bg="#585b70", fg="#cdd6f4")
             self.incoming_btn.configure(bg="#89b4fa", fg="#1e1e2e")
-            self._log("Direction: PARTNER → ME (EN→RU)", "incoming")
+            self._log("Направление: СОБЕСЕДНИК → Я (EN→RU)", "incoming")
             
             # Update engine if running
             if self.streams:
@@ -450,9 +456,9 @@ class TranslatorGUI:
             config_path = Path(__file__).parent.parent / "config" / "hf_token.txt"
             config_path.parent.mkdir(parents=True, exist_ok=True)
             config_path.write_text(token)
-            self._log("Hugging Face token saved.", "system")
+            self._log("Hugging Face токен сохранён.", "system")
         
-        self._log("Starting voice enrollment...", "system")
+        self._log("Запуск записи голоса...", "system")
         
         # Run enrollment in terminal
         subprocess.Popen(
